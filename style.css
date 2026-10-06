@@ -1893,6 +1893,35 @@ footer span {
     transform: rotate(90deg);
 }
 
+.memory-next {
+    align-self: flex-end;
+    min-width: 104px;
+    margin-top: 24px;
+    padding: 11px 24px;
+    border: 1px solid rgba(255,255,255,.35);
+    border-radius: 999px;
+    color: white;
+    background: rgba(255,111,174,.28);
+    font: 500 14px "Inter", sans-serif;
+    cursor: pointer;
+    transition: background .2s ease, transform .2s ease, opacity .2s ease;
+}
+
+.memory-next:hover:not(:disabled) {
+    transform: translateY(-2px);
+    background: rgba(255,111,174,.48);
+}
+
+.memory-next:focus-visible {
+    outline: 2px solid #ffc3e1;
+    outline-offset: 4px;
+}
+
+.memory-next:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
 @media (max-width: 850px) {
     .memory-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
     .memory-card { height: 300px; }

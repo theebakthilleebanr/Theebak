@@ -20,34 +20,34 @@ const tracks = {
 
     loveAtFirstSight: {
         file: "audio/Love-At-First-Sight.mp3",
-        volume: 0.7
+        volume: 0.33
     },
 
     her: {
         file: "audio/her.mp3",
-        volume: 0.7,
+        volume: 0.33,
         startAt: 27
     },
 
     aboutYou: {
         file: "audio/about-you.mp3",
-        volume: 0.7,
+        volume: 0.33,
         startAt: 12
     },
 
     pretty: {
         file: "audio/pretty.mp3",
-        volume: 0.7
+        volume: 0.33
     },
 
     vizhiMozhi: {
         file: "audio/vizhi-mozhi.mp3",
-        volume: 0.7
+        volume: 0.33
     },
 
     othaiyadiPathayila: {
         file: "audio/Othaiyadi-Pathayila.mp3",
-        volume: 0.7,
+        volume: 0.33,
         startAt: 32
     }
 
@@ -62,32 +62,32 @@ const chapterMusic = {
 
     story: {
         track: tracks.loveAtFirstSight,
-        volume: 0.7
+        volume: 0.33
     },
 
     memories: {
         track: tracks.othaiyadiPathayila,
-        volume: 0.7
+        volume: 0.33
     },
 
     tara: {
         track: tracks.pretty,
-        volume: 0.7
+        volume: 0.33
     },
 
     letter: {
         track: tracks.vizhiMozhi,
-        volume: 0.7
+        volume: 0.33
     },
 
     cinematic: {
         track: tracks.aboutYou,
-        volume: 0.7
+        volume: 0.33
     },
 
     final: {
         track: tracks.her,
-        volume: 0.7
+        volume: 0.33
     }
 
 };
@@ -110,6 +110,11 @@ let currentTrack = "";
 let currentChapter = "";
 
 let switching = false;
+
+let queuedMusic = null;
+
+const useSingleAudioOnMobile =
+    window.matchMedia("(max-width: 700px), (hover: none)").matches;
 
 
 /* =========================================================
@@ -260,6 +265,17 @@ function startMusic(track, volume) {
    CROSSFADE MUSIC
 ========================================================= */
 
+function playQueuedMusic() {
+    if (!queuedMusic) return;
+
+    const next = queuedMusic;
+    queuedMusic = null;
+
+    if (next.track.file !== currentTrack) {
+        switchMusic(next.track, next.volume);
+    }
+}
+
 function switchMusic(track, volume) {
 
     if (!track) return;
@@ -269,10 +285,43 @@ function switchMusic(track, volume) {
     }
 
     if (switching) {
+        queuedMusic = { track, volume };
         return;
     }
 
     switching = true;
+
+    if (useSingleAudioOnMobile) {
+        const audioToSwitch = activeAudio;
+
+        if (track.startAt > 0) {
+            audioToSwitch.addEventListener(
+                "loadedmetadata",
+                () => {
+                    audioToSwitch.currentTime = track.startAt;
+                },
+                { once: true }
+            );
+        }
+
+        audioToSwitch.src = track.file;
+        audioToSwitch.loop = true;
+        audioToSwitch.volume = musicMuted ? 0 : volume;
+        audioToSwitch.load();
+
+        audioToSwitch.play()
+            .then(() => {
+                currentTrack = track.file;
+                switching = false;
+                playQueuedMusic();
+            })
+            .catch(() => {
+                switching = false;
+                playQueuedMusic();
+            });
+
+        return;
+    }
 
     if (track.startAt > 0) {
         inactiveAudio.addEventListener(
@@ -343,6 +392,7 @@ function switchMusic(track, volume) {
                         track.file;
 
                     switching = false;
+                    playQueuedMusic();
                 }
 
             }, interval);
@@ -351,6 +401,7 @@ function switchMusic(track, volume) {
         .catch(() => {
 
             switching = false;
+            playQueuedMusic();
 
         });
 }
@@ -369,10 +420,6 @@ function updateMusic() {
     const chapter =
         getCurrentChapter();
 
-    if (chapter === currentChapter) {
-        return;
-    }
-
     currentChapter = chapter;
 
     const music =
@@ -382,10 +429,9 @@ function updateMusic() {
         return;
     }
 
-    switchMusic(
-        music.track,
-        music.volume
-    );
+    if (music.track.file !== currentTrack) {
+        switchMusic(music.track, music.volume);
+    }
 }
 
 
@@ -496,10 +542,14 @@ musicToggle.addEventListener(
             const volume =
                 chapter
                     ? chapter.volume
-                    : 0.7;
+                    : 0.33;
 
             activeAudio.volume =
                 volume;
+
+            if (activeAudio.paused && chapter) {
+                startMusic(chapter.track, chapter.volume);
+            }
 
             musicToggle.innerHTML = "♪";
         }
@@ -687,6 +737,7 @@ window.addEventListener(
 
 const memoryModal = document.getElementById("memoryModal");
 const memoryClose = document.getElementById("memoryClose");
+const memoryNext = document.getElementById("memoryNext");
 
 const modalMemoryImage =
     document.getElementById("modalMemoryImage");
@@ -761,7 +812,8 @@ const memories = {
 };
 
 function openMemoryModal(card) {
-    const memory = memories[card.dataset.memory];
+    currentMemoryId = Number(card.dataset.memory);
+    const memory = memories[currentMemoryId];
     if (!memory) return;
 
     modalMemoryVideo.pause();
@@ -837,11 +889,25 @@ function openMemoryModal(card) {
     modalMemoryImage.alt = card.querySelector("img").alt;
     modalMemoryTitle.textContent = memory.title;
     modalMemoryDescription.textContent = memory.description;
+    memoryNext.disabled = currentMemoryId >= Object.keys(memories).length;
     memoryModal.classList.add("active");
     memoryModal.setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";
     memoryClose.focus();
 }
+
+let currentMemoryId = null;
+
+memoryNext.addEventListener("click", () => {
+    const nextCard = document.querySelector(
+        `.memory-card[data-memory="${currentMemoryId + 1}"]`
+    );
+
+    if (nextCard) {
+        openMemoryModal(nextCard);
+        memoryNext.focus();
+    }
+});
 
 document.querySelectorAll(".memory-card").forEach(card => {
     card.addEventListener("click", () => openMemoryModal(card));
