@@ -9,6 +9,7 @@ const audioB = document.getElementById("audioB");
 const musicToggle = document.getElementById("musicToggle");
 const revealButton = document.getElementById("revealButton");
 const finalMessage = document.getElementById("finalMessage");
+const birthdayVideo = document.getElementById("birthdayVideo");
 
 
 /* =========================================================
@@ -17,24 +18,37 @@ const finalMessage = document.getElementById("finalMessage");
 
 const tracks = {
 
+    loveAtFirstSight: {
+        file: "audio/Love-At-First-Sight.mp3",
+        volume: 0.7
+    },
+
     her: {
         file: "audio/her.mp3",
-        volume: 0.28
+        volume: 0.7,
+        startAt: 27
     },
 
     aboutYou: {
         file: "audio/about-you.mp3",
-        volume: 0.26
+        volume: 0.7,
+        startAt: 12
     },
 
     pretty: {
         file: "audio/pretty.mp3",
-        volume: 0.27
+        volume: 0.7
     },
 
     vizhiMozhi: {
         file: "audio/vizhi-mozhi.mp3",
-        volume: 0.25
+        volume: 0.7
+    },
+
+    othaiyadiPathayila: {
+        file: "audio/Othaiyadi-Pathayila.mp3",
+        volume: 0.7,
+        startAt: 32
     }
 
 };
@@ -47,33 +61,33 @@ const tracks = {
 const chapterMusic = {
 
     story: {
-        track: tracks.her,
-        volume: 0.28
+        track: tracks.loveAtFirstSight,
+        volume: 0.7
     },
 
     memories: {
-        track: tracks.aboutYou,
-        volume: 0.26
+        track: tracks.othaiyadiPathayila,
+        volume: 0.7
     },
 
     tara: {
         track: tracks.pretty,
-        volume: 0.27
+        volume: 0.7
     },
 
     letter: {
         track: tracks.vizhiMozhi,
-        volume: 0.25
+        volume: 0.7
     },
 
     cinematic: {
-        track: tracks.vizhiMozhi,
-        volume: 0.30
+        track: tracks.aboutYou,
+        volume: 0.7
     },
 
     final: {
         track: tracks.her,
-        volume: 0.30
+        volume: 0.7
     }
 
 };
@@ -207,14 +221,26 @@ function startMusic(track, volume) {
 
     if (!track) return;
 
-    activeAudio.src = track.file;
+    const audioToStart = activeAudio;
 
-    activeAudio.volume =
+    if (track.startAt > 0) {
+        audioToStart.addEventListener(
+            "loadedmetadata",
+            () => {
+                audioToStart.currentTime = track.startAt;
+            },
+            { once: true }
+        );
+    }
+
+    audioToStart.src = track.file;
+
+    audioToStart.volume =
         musicMuted ? 0 : volume;
 
-    activeAudio.loop = true;
+    audioToStart.loop = true;
 
-    activeAudio.play()
+    audioToStart.play()
         .catch(error => {
 
             console.log(
@@ -247,6 +273,16 @@ function switchMusic(track, volume) {
     }
 
     switching = true;
+
+    if (track.startAt > 0) {
+        inactiveAudio.addEventListener(
+            "loadedmetadata",
+            () => {
+                inactiveAudio.currentTime = track.startAt;
+            },
+            { once: true }
+        );
+    }
 
     inactiveAudio.src = track.file;
 
@@ -364,7 +400,10 @@ function continueFromBirthdayQuestion() {
     scrollIndicator.classList.remove("is-visible");
     scrollIndicator.setAttribute("aria-hidden", "true");
     currentChapter = "story";
-    startMusic(tracks.her, tracks.her.volume);
+    startMusic(
+        chapterMusic.story.track,
+        chapterMusic.story.volume
+    );
 
     const storyPage = document.getElementById("story");
     const startY = window.scrollY;
@@ -457,7 +496,7 @@ musicToggle.addEventListener(
             const volume =
                 chapter
                     ? chapter.volume
-                    : 0.28;
+                    : 0.7;
 
             activeAudio.volume =
                 volume;
@@ -481,6 +520,27 @@ revealButton.addEventListener(
 
         revealButton.style.display =
             "none";
+
+        window.requestAnimationFrame(() => {
+            birthdayVideo.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+                inline: "nearest"
+            });
+        });
+
+        window.setTimeout(async () => {
+            try {
+                await birthdayVideo.play();
+            } catch {
+                birthdayVideo.muted = true;
+                try {
+                    await birthdayVideo.play();
+                } catch {
+                    birthdayVideo.controls = true;
+                }
+            }
+        }, 2000);
 
         createFinalSparkles();
 
@@ -640,9 +700,6 @@ const memoryPhotoCollage =
 const memoryModalMedia =
     document.querySelector(".memory-modal-image");
 
-const modalMemoryNumber =
-    document.getElementById("modalMemoryNumber");
-
 const modalMemoryTitle =
     document.getElementById("modalMemoryTitle");
 
@@ -652,7 +709,6 @@ const modalMemoryDescription =
 /* Edit your personal memory words here. */
 const memories = {
     1: {
-        number: "01",
         title: "Oru Chinna Arambam",
         image: "photos/photo1.jpg",
         photos: [
@@ -661,10 +717,9 @@ const memories = {
             "photos/memory-01/1000058901-01.jpg",
             "photos/memory-01/1000058926-01.jpg"
         ],
-        description: "Hiii Tara, namma connection enga aramichithunu ennaku theriyathu ana un pona piranthanaal la irunthu ippo vara neraiya chinna chinna thodakangal irunthrukku, antha chinna arambangal ellam ini periya alavula pandrom. intha pirantha naal kulla vantha progress ah vida innum mass ah pandrom namma."
+        description: "Hiii Tara, namma connection enga aramichithunu ennaku theriyathu. Un pona piranthanaal la irunthu ippo vara neraiya chinna chinna thodakangal irunthrukku, antha chinna thodakangal ellam ini periya alavula pandrom. Intha pirantha naal kulla vantha progress ah vida innum mass ah pandrom namma."
     },
     2: {
-        number: "02",
         title: "En Azhagu Sundari",
         image: "photos/photo4.jpg",
         collageLayout: "all-portrait",
@@ -674,10 +729,9 @@ const memories = {
             "photos/memory-02/IMG_6891.jpg",
             "photos/memory-02/IMG_6892.jpg"
         ],
-        description: "Ivalo azhaga yaaru iruppa en devathaiya thavira cute penneh nee eppavume azhagu than, Un sirippukku naan adimaipa. Evalo smart and intelligent theriyuma nee. i would listen whatever you say whatever you say makes sense ivalo mass laan yaarume illa."
+        description: "Ivalo azhaga yaaru iruppa en devathaiya thavira, Cute penneh!! Nee eppavume azhagu than, Un sirippukku naan adimai 🛐. Evalo smart and intelligent theriyuma nee. Nee enna sonnalum kepeney, whatever you say makes sense ivalo mass laan yaarume illa."
     },
     3: {
-        number: "03",
         title: "Cute Devathai",
         image: "photos/photo5.jpg",
         collageLayout: "portrait-side-columns",
@@ -688,23 +742,21 @@ const memories = {
             "photos/memory-03/1000039891~2.jpg",
             "photos/memory-03/1000039942.jpg"
         ],
-        description: "Anaikku ungala intha costume la paathu naan flatunga. avalo azhagu, en kannala naan pakuratha neeyum pakanum ennaku avalo asai hehe. you really deserve whatever good in this world and naan unnaku ellame tharuven kandipa."
+        description: "Anaikku unna intha costume la paathu naan flatunga. Avalo azhagu, En kannala naan unna eppaudi pakureno neeyum pakanum ennaku avalo aasai. You really deserve whatever good in this world and naan unnaku ellame tharuven kandipa."
     },
     4: {
-        number: "04",
         title: "Un Kanavugal Ninaivagum",
         image: "photos/photo6.jpg",
         thumbnail: "photos/memory6-thumbnail.png",
         video: "videos/memory6.mp4",
-        description: "Namma kandipa un dream ennalam irukko ellame pandrom seriya. Naan romba sathoshama irunthen you did this to do something unnaku pudichatha athu vara nee unnakunu ethuvum panna maari ennaku feel anathu illa. But this it's just you know sema. and after that in a team where you really need to be nu kekum bothu superah irunthuchu. Iniyum ipadiye we go do things and enjoy intha birthday ku nee semaiya enjoy pannanum after every day we be happy. Unnaku eppavum arts than firstuh naan nextuh than solliten"
+        description: "Namma kandipa un dream ennalam irukko ellame pandrom seriya. Naan romba sathoshama irunthen, You did what you wished for, unnaku pudichathu, It's just you know sema and after that in a team where you really need to be nu kekum bothu superah irunthuchu. Innum ipadiye, we go do things and enjoy, intha birthday ku nee semaiya enjoy pannanum even after every day we be happy. Unnaku eppavum arts than firstuh naan nextuh than solliten."
     },
     5: {
-        number: "05",
         title: "Miss Narthagiye",
         image: "photos/photo7.jpg",
         thumbnail: "photos/memory7-thumbnail.png",
         video: "videos/memory7.mp4",
-        description: "Un cute expressions laan paathu jollyah irunthen, i wish to bring it all out un mogam vaadave koodathu jollyah irukanum. I promise your 20s is gonna be the best one in your life."
+        description: "Un cute expressions laan paathu jollyah irunthen, I wish to bring it all out, Un mogam vaadave koodathu jollyah irukanum. I promise your 20s is gonna be the best one in your life athenna 20s nu kekatha ini ellame best than unnaku."
     }
 };
 
@@ -772,6 +824,9 @@ function openMemoryModal(card) {
             modalMemoryVideo.src = memory.video;
             modalMemoryVideo.poster = memory.thumbnail || memory.image;
             modalMemoryVideo.load();
+            modalMemoryVideo.play().catch(() => {
+                // Keep the controls available if the browser blocks autoplay.
+            });
         } else {
             modalMemoryVideo.hidden = true;
             modalMemoryImage.hidden = false;
@@ -780,7 +835,6 @@ function openMemoryModal(card) {
     }
 
     modalMemoryImage.alt = card.querySelector("img").alt;
-    modalMemoryNumber.textContent = memory.number;
     modalMemoryTitle.textContent = memory.title;
     modalMemoryDescription.textContent = memory.description;
     memoryModal.classList.add("active");
