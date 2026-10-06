@@ -25,7 +25,7 @@ const tracks = {
 
     her: {
         file: "audio/her.mp3",
-        volume: 0.33,
+        volume: 0.12,
         startAt: 27
     },
 
@@ -87,7 +87,7 @@ const chapterMusic = {
 
     final: {
         track: tracks.her,
-        volume: 0.33
+        volume: 0.12
     }
 
 };
@@ -110,11 +110,6 @@ let currentTrack = "";
 let currentChapter = "";
 
 let switching = false;
-
-let queuedMusic = null;
-
-const useSingleAudioOnMobile =
-    window.matchMedia("(max-width: 700px), (hover: none)").matches;
 
 
 /* =========================================================
@@ -265,17 +260,6 @@ function startMusic(track, volume) {
    CROSSFADE MUSIC
 ========================================================= */
 
-function playQueuedMusic() {
-    if (!queuedMusic) return;
-
-    const next = queuedMusic;
-    queuedMusic = null;
-
-    if (next.track.file !== currentTrack) {
-        switchMusic(next.track, next.volume);
-    }
-}
-
 function switchMusic(track, volume) {
 
     if (!track) return;
@@ -285,43 +269,10 @@ function switchMusic(track, volume) {
     }
 
     if (switching) {
-        queuedMusic = { track, volume };
         return;
     }
 
     switching = true;
-
-    if (useSingleAudioOnMobile) {
-        const audioToSwitch = activeAudio;
-
-        if (track.startAt > 0) {
-            audioToSwitch.addEventListener(
-                "loadedmetadata",
-                () => {
-                    audioToSwitch.currentTime = track.startAt;
-                },
-                { once: true }
-            );
-        }
-
-        audioToSwitch.src = track.file;
-        audioToSwitch.loop = true;
-        audioToSwitch.volume = musicMuted ? 0 : volume;
-        audioToSwitch.load();
-
-        audioToSwitch.play()
-            .then(() => {
-                currentTrack = track.file;
-                switching = false;
-                playQueuedMusic();
-            })
-            .catch(() => {
-                switching = false;
-                playQueuedMusic();
-            });
-
-        return;
-    }
 
     if (track.startAt > 0) {
         inactiveAudio.addEventListener(
@@ -392,7 +343,6 @@ function switchMusic(track, volume) {
                         track.file;
 
                     switching = false;
-                    playQueuedMusic();
                 }
 
             }, interval);
@@ -401,7 +351,6 @@ function switchMusic(track, volume) {
         .catch(() => {
 
             switching = false;
-            playQueuedMusic();
 
         });
 }
@@ -420,6 +369,10 @@ function updateMusic() {
     const chapter =
         getCurrentChapter();
 
+    if (chapter === currentChapter) {
+        return;
+    }
+
     currentChapter = chapter;
 
     const music =
@@ -429,9 +382,10 @@ function updateMusic() {
         return;
     }
 
-    if (music.track.file !== currentTrack) {
-        switchMusic(music.track, music.volume);
-    }
+    switchMusic(
+        music.track,
+        music.volume
+    );
 }
 
 
@@ -546,10 +500,6 @@ musicToggle.addEventListener(
 
             activeAudio.volume =
                 volume;
-
-            if (activeAudio.paused && chapter) {
-                startMusic(chapter.track, chapter.volume);
-            }
 
             musicToggle.innerHTML = "♪";
         }
@@ -889,7 +839,13 @@ function openMemoryModal(card) {
     modalMemoryImage.alt = card.querySelector("img").alt;
     modalMemoryTitle.textContent = memory.title;
     modalMemoryDescription.textContent = memory.description;
-    memoryNext.disabled = currentMemoryId >= Object.keys(memories).length;
+    const isLastMemory = currentMemoryId >= Object.keys(memories).length;
+    memoryNext.textContent = isLastMemory ? "Close" : "Next";
+    memoryNext.setAttribute(
+        "aria-label",
+        isLastMemory ? "Close memory" : "Open next memory"
+    );
+    memoryNext.disabled = false;
     memoryModal.classList.add("active");
     memoryModal.setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";
@@ -899,6 +855,11 @@ function openMemoryModal(card) {
 let currentMemoryId = null;
 
 memoryNext.addEventListener("click", () => {
+    if (currentMemoryId >= Object.keys(memories).length) {
+        closeMemoryModal();
+        return;
+    }
+
     const nextCard = document.querySelector(
         `.memory-card[data-memory="${currentMemoryId + 1}"]`
     );
